@@ -2,8 +2,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/crm", "destination": "/crm/index.html" },
-    { "source": "/crm/", "destination": "/crm/index.html" },
-    { "source": "/crm/:path*", "destination": "/crm/index.html" }
+    { "source": "/crm", "destination": "/index.html" },
+    { "source": "/crm/", "destination": "/index.html" }
   ]
 }
