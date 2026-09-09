@@ -1,83 +1,29 @@
-type TrafficRow={country?:string;city?:string;deviceCategory?:string;unifiedScreenName?:string;eventName?:string;activeUsers?:number;eventCount?:number;screenPageViews?:number;keyEvents?:number};
-
-type TrafficPayload={source:'ga4'|'crm-demo';updatedAt:string;activeUsers:number;pageViews:number;events:number;keyEvents:number;countries:TrafficRow[];devices:TrafficRow[];pages:TrafficRow[];eventsStream:TrafficRow[];minutes:{label:string;value:number}[]};
-
+type AnyRow=Record<string,any>;
+type DashboardPayload={configured:boolean;source:string;updatedAt:string;siteUrl:string;ga4:{totalUsers:number;sessions:number;pageViews:number;engagementRate:number;keyEvents:number;purchaseRevenue:number;daily:AnyRow[];channels:AnyRow[];countries:AnyRow[];cities:AnyRow[];sources:AnyRow[];pages:AnyRow[];realtime:AnyRow[]};gsc:{clicks:number;impressions:number;ctr:number;position:number;daily:AnyRow[];queries:AnyRow[];pages:AnyRow[];countries:AnyRow[];devices:AnyRow[]}};
 import './live-traffic.css';
-
 const qs=<T extends Element=Element>(s:string)=>document.querySelector<T>(s);
-const qsa=(s:string)=>Array.from(document.querySelectorAll(s));
-const money=(n:number)=>'₹'+Math.round(n).toLocaleString('en-IN');
-
-function demoPayload():TrafficPayload{
-  const seedCountries=[['India',18],['United States',7],['United Kingdom',4],['UAE',3],['Singapore',2]];
-  const seedDevices=[['Mobile',21],['Desktop',10],['Tablet',3]];
-  const pages=['/','/services/seo','/blog','/crm','/tools/seo-audit'];
-  const events=['page_view','scroll','session_start','generate_lead','click'];
-  const active=34;
-  return {source:'crm-demo',updatedAt:new Date().toISOString(),activeUsers:active,pageViews:86,events:164,keyEvents:5,
-    countries:seedCountries.map(([country,n])=>({country:String(country),activeUsers:Number(n)})),
-    devices:seedDevices.map(([deviceCategory,n])=>({deviceCategory:String(deviceCategory),activeUsers:Number(n)})),
-    pages:pages.map((unifiedScreenName,i)=>({unifiedScreenName,screenPageViews:[31,18,14,9,7][i]})),
-    eventsStream:events.map((eventName,i)=>({eventName,activeUsers:[19,13,11,4,8][i],eventCount:[51,37,28,5,22][i]})),
-    minutes:Array.from({length:30},(_,i)=>({label:`-${29-i}m`,value:Math.max(2,Math.round(18+Math.sin(i/2)*7+((i*13)%9)))}))};
+const money=(n:number)=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+const esc=(v:any)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]!));
+const demo=():DashboardPayload=>({configured:false,source:'demo',updatedAt:new Date().toISOString(),siteUrl:'https://www.crazyseoteam.in/',ga4:{totalUsers:1284,sessions:1562,pageViews:4820,engagementRate:.61,keyEvents:74,purchaseRevenue:185000,daily:Array.from({length:28},(_,i)=>({date:`D${i+1}`,totalUsers:35+(i*17)%90,sessions:50+(i*23)%110,screenPageViews:130+(i*31)%230,keyEvents:1+(i%7)})),channels:[['Organic Search',612],['Direct',374],['Organic Social',218],['Referral',147],['Paid Search',96],['Email',55]].map(([sessionDefaultChannelGroup,sessions])=>({sessionDefaultChannelGroup,sessions,totalUsers:Math.round(Number(sessions)*.8),screenPageViews:Number(sessions)*3,keyEvents:Math.round(Number(sessions)/10),purchaseRevenue:Number(sessions)*190})),countries:[['India',740],['United States',182],['United Kingdom',91],['UAE',64],['Singapore',42]].map(([country,totalUsers])=>({country,totalUsers,sessions:Number(totalUsers)*1.2,screenPageViews:Number(totalUsers)*3})),cities:[['Patna',190],['Delhi',165],['Mumbai',142],['Bengaluru',96],['Kolkata',78]].map(([city,totalUsers])=>({city,totalUsers,sessions:Number(totalUsers)*1.2})),sources:[['google','organic'],['(direct)','(none)'],['instagram.com','referral'],['facebook.com','referral'],['linkedin.com','referral']].map(([sessionSource,sessionMedium],i)=>({sessionSource,sessionMedium,sessions:[612,374,120,86,58][i],totalUsers:[500,290,95,70,44][i],keyEvents:[31,17,8,6,4][i]})),pages:['/','/services/seo','/blog','/crm','/tools/seo-audit'].map((pagePath,i)=>({pagePath,screenPageViews:[1240,860,710,490,380][i],totalUsers:[640,470,360,250,210][i],keyEvents:[22,15,12,9,7][i]})),realtime:[{country:'India',city:'Patna',deviceCategory:'mobile',activeUsers:18},{country:'India',city:'Delhi',deviceCategory:'desktop',activeUsers:11},{country:'United States',city:'New York',deviceCategory:'desktop',activeUsers:7}]},gsc:{clicks:3180,impressions:68200,ctr:.0466,position:18.4,daily:Array.from({length:28},(_,i)=>({keys:[`D${i+1}`],clicks:70+(i*9)%60,impressions:1300+(i*91)%900,ctr:.045,position:18})),queries:[['seo company',420],['ai seo',310],['seo services',275],['answer engine optimization',198],['technical seo',166]].map(([q,clicks])=>({keys:[q],clicks,impressions:Number(clicks)*18,ctr:.05,position:9.8})),pages:[['/',820],['/services/seo',610],['/blog/ai-seo',410],['/services/technical-seo',270]].map(([p,clicks])=>({keys:[p],clicks,impressions:Number(clicks)*20,ctr:.05,position:11.2})),countries:[['ind',2100],['usa',430],['gbr',180],['are',120]].map(([country,clicks])=>({keys:[country],clicks,impressions:Number(clicks)*17,ctr:.05,position:14})),devices:[['MOBILE',1900],['DESKTOP',1100],['TABLET',180]].map(([device,clicks])=>({keys:[device],clicks,impressions:Number(clicks)*16,ctr:.05,position:17}))}});
+async function load():Promise<DashboardPayload>{try{const r=await fetch('/api/analytics-dashboard',{cache:'no-store'});if(!r.ok)throw 0;return await r.json()}catch{return demo()}}
+const crm=()=>{try{return JSON.parse(localStorage.getItem('cst-final-leads')||'[]')}catch{return[]}};
+const bar=(label:string,value:number,max:number)=>`<div class="adBar"><span>${esc(label)}</span><div><i style="width:${Math.max(4,Math.min(100,max?value/max*100:0))}%"></i></div><b>${value.toLocaleString('en-IN')}</b></div>`;
+const table=(title:string,head:string[],items:any[],map:(x:any)=>string[])=>`<section class="adCard"><div class="adHead"><div><h3>${title}</h3><p>Last 28 days</p></div></div><div class="adTable"><div class="adTr adTh">${head.map(x=>`<span>${x}</span>`).join('')}</div>${items.slice(0,8).map(x=>`<div class="adTr">${map(x).map(v=>`<span>${esc(v)}</span>`).join('')}</div>`).join('')}</div></section>`;
+function render(p:DashboardPayload,view='overview'){
+ const root=qs<HTMLElement>('#liveTrafficOverlay');if(!root)return;const leads=crm(),pipeline=leads.reduce((a:any,l:any)=>a+(Number(l.budget)||0),0),won=leads.filter((l:any)=>l.status==='Won'),wonRevenue=won.reduce((a:any,l:any)=>a+(Number(l.budget)||0),0),conversion=leads.length?won.length/leads.length*100:0;
+ const tabs=['overview','realtime','seo','sources','geo','leads'];
+ let body='';
+ if(view==='overview'){const max=Math.max(...p.ga4.daily.map(x=>x.totalUsers),1);body=`<div class="adKpis">${[['Visitors',p.ga4.totalUsers.toLocaleString('en-IN'),'GA4 • 28 days'],['Sessions',p.ga4.sessions.toLocaleString('en-IN'),'GA4'],['Google clicks',p.gsc.clicks.toLocaleString('en-IN'),'Search Console'],['Impressions',p.gsc.impressions.toLocaleString('en-IN'),'Search Console'],['Lead pipeline',money(pipeline),'CRM'],['Won revenue',money(wonRevenue),'CRM'],['Conversion',conversion.toFixed(1)+'%','CRM leads'],['SEO CTR',(p.gsc.ctr*100).toFixed(2)+'%','Google Search']].map(x=>`<div class="adKpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('')}</div><section class="adCard"><div class="adHead"><div><h3>Traffic & SEO pulse</h3><p>GA4 users and Search Console clicks across the last 28 days.</p></div><span class="adPill">${p.configured?'LIVE DATA':'DEMO PREVIEW'}</span></div><div class="adDualChart"><div class="adChartBars">${p.ga4.daily.map(x=>`<i style="height:${Math.max(8,x.totalUsers/max*100)}%" title="${x.date}: ${x.totalUsers} users"></i>`).join('')}</div><div class="adChartMeta"><b>${p.ga4.totalUsers.toLocaleString('en-IN')}</b><span>users</span><b>${p.gsc.clicks.toLocaleString('en-IN')}</b><span>organic clicks</span></div></div></section><div class="adGrid2">${table('Top channels',['Channel','Sessions','Users'],p.ga4.channels,x=>[x.sessionDefaultChannelGroup,x.sessions,x.totalUsers])}${table('Top organic queries',['Query','Clicks','Impressions'],p.gsc.queries,x=>[x.keys?.[0],x.clicks,x.impressions])}</div>`}
+ if(view==='realtime'){const max=Math.max(...p.ga4.realtime.map(x=>x.activeUsers||0),1);body=`<div class="adKpis">${[['Active now',p.ga4.realtime.reduce((a,x)=>a+(x.activeUsers||0),0),'GA4 realtime'],['Page views',p.ga4.pageViews.toLocaleString('en-IN'),'28 days'],['Key events',p.ga4.keyEvents.toLocaleString('en-IN'),'Conversions'],['Engagement',(p.ga4.engagementRate*100).toFixed(1)+'%','GA4']].map(x=>`<div class="adKpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('')}</div><div class="adGrid2">${table('Realtime locations',['Country','City','Device','Users'],p.ga4.realtime,x=>[x.country,x.city,x.deviceCategory,x.activeUsers])}<section class="adCard"><div class="adHead"><div><h3>Live activity</h3><p>Visitors active during the current realtime window.</p></div></div>${p.ga4.realtime.slice(0,10).map(x=>bar(`${x.city||'Unknown'} • ${x.deviceCategory||''}`,x.activeUsers,max)).join('')}</section></div>`}
+ if(view==='seo'){body=`<div class="adKpis">${[['Clicks',p.gsc.clicks.toLocaleString('en-IN'),'GSC'],['Impressions',p.gsc.impressions.toLocaleString('en-IN'),'GSC'],['CTR',(p.gsc.ctr*100).toFixed(2)+'%','GSC'],['Avg position',p.gsc.position.toFixed(1),'GSC'],['SEO key events',p.ga4.keyEvents.toLocaleString('en-IN'),'GA4'],['Organic sessions',(p.ga4.channels.find(x=>String(x.sessionDefaultChannelGroup).includes('Organic Search'))?.sessions||0).toLocaleString('en-IN'),'GA4']].map(x=>`<div class="adKpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('')}</div><div class="adGrid2">${table('Search queries',['Query','Clicks','Impressions'],p.gsc.queries,x=>[x.keys?.[0],x.clicks,x.impressions])}${table('SEO landing pages',['Page','Clicks','Impressions'],p.gsc.pages,x=>[x.keys?.[0],x.clicks,x.impressions])}</div><div class="adGrid2">${table('Search countries',['Country','Clicks','Impressions'],p.gsc.countries,x=>[x.keys?.[0],x.clicks,x.impressions])}${table('Search devices',['Device','Clicks','Impressions'],p.gsc.devices,x=>[x.keys?.[0],x.clicks,x.impressions])}</div>`}
+ if(view==='sources'){const max=Math.max(...p.ga4.sources.map(x=>x.sessions),1);body=`<section class="adCard"><div class="adHead"><div><h3>Traffic source & medium</h3><p>Where visitors are coming from.</p></div></div>${p.ga4.sources.map(x=>bar(`${x.sessionSource} / ${x.sessionMedium}`,x.sessions,max)).join('')}</section>`}
+ if(view==='geo'){body=`<div class="adGrid2">${table('Countries',['Country','Users','Sessions'],p.ga4.countries,x=>[x.country,x.totalUsers,x.sessions])}${table('Cities',['City','Users','Sessions'],p.ga4.cities,x=>[x.city,x.totalUsers,x.sessions])}</div>`}
+ if(view==='leads'){const source=[...new Set(leads.map((x:any)=>x.source))].map(s=>({s,n:leads.filter((x:any)=>x.source===s).length}));body=`<div class="adKpis">${[['Total leads',leads.length,'CRM'],['Qualified',leads.filter((x:any)=>x.status==='Qualified').length,'CRM'],['Accepted',leads.filter((x:any)=>['Accepted','Proposal','Negotiation'].includes(x.status)).length,'CRM'],['Won',won.length,'CRM'],['Pipeline',money(pipeline),'CRM'],['Won revenue',money(wonRevenue),'CRM'],['Avg deal',money(leads.length?pipeline/leads.length:0),'CRM'],['Lead conversion',conversion.toFixed(1)+'%','CRM']].map(x=>`<div class="adKpi"><span>${x[0]}</span><strong>${x[1]}</strong><small>${x[2]}</small></div>`).join('')}</div><div class="adGrid2"><section class="adCard"><div class="adHead"><div><h3>Lead sources</h3><p>CRM leads by acquisition source.</p></div></div>${source.map(x=>bar(x.s,x.n,Math.max(...source.map(y=>y.n),1))).join('')}</section>${table('Recent leads',['Client','Status','Value','Source'],leads,(x:any)=>[x.name,x.status,money(x.budget),x.source])}</div>`}
+ root.innerHTML=`<div class="adShell"><header class="adHeader"><div><div class="adEyebrow">CRAZY SEO TEAM • GROWTH INTELLIGENCE</div><h2>Analytics & Live Traffic</h2><p>GA4 + Search Console + CRM revenue, leads, conversion, geography and acquisition in one dashboard.</p></div><div class="adActions"><span class="adConnection"><i></i>${p.configured?'GA4 + GSC CONNECTED':'DEMO DATA'}</span><button id="adRefresh">↻ Refresh</button><button id="adClose">×</button></div></header><nav class="adTabs">${tabs.map(t=>`<button data-tab="${t}" class="${t===view?'active':''}">${({overview:'Overview',realtime:'Live Traffic',seo:'SEO Traffic',sources:'Sources',geo:'Country / City',leads:'Revenue & Leads'} as any)[t]}</button>`).join('')}</nav><main class="adBody">${body}</main><footer class="adFooter">Updated ${new Date(p.updatedAt).toLocaleString('en-IN')} • ${p.siteUrl}</footer></div>`;
+ qs('#adClose')?.addEventListener('click',()=>qs('#liveTrafficOverlay')?.classList.remove('open'));qs('#adRefresh')?.addEventListener('click',async()=>render(await load(),view));root.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>render(p,(b as HTMLElement).dataset.tab||'overview')));
 }
-
-function rowsFromApi(rows:any[],dims:string[],metrics:string[]):TrafficRow[]{
-  return (rows||[]).map(r=>{const o:TrafficRow={};dims.forEach((d,i)=>{o[d]=r.dimensionValues?.[i]?.value});metrics.forEach((m,i)=>{o[m]=Number(r.metricValues?.[i]?.value||0)});return o});
-}
-
-async function getPayload():Promise<TrafficPayload>{
-  try{
-    const r=await fetch('/api/analytics-realtime',{headers:{accept:'application/json'},cache:'no-store'});
-    if(!r.ok)throw new Error('GA4 endpoint not configured');
-    const x=await r.json();
-    return {source:'ga4',updatedAt:new Date().toISOString(),activeUsers:x.activeUsers||0,pageViews:x.pageViews||0,events:x.events||0,keyEvents:x.keyEvents||0,countries:x.countries||[],devices:x.devices||[],pages:x.pages||[],eventsStream:x.eventsStream||[],minutes:x.minutes||[]};
-  }catch{return demoPayload()}
-}
-
-function injectNav(){
-  const nav=qs('aside nav');
-  if(!nav||nav.querySelector('[data-live-traffic]'))return;
-  const b=document.createElement('button');
-  b.className='nav liveTrafficNav';b.setAttribute('data-live-traffic','1');
-  b.innerHTML='<span class="ltIcon">◉</span><span>Live Traffic</span><em>LIVE</em>';
-  b.addEventListener('click',()=>openTraffic());nav.appendChild(b);
-  const analytics=Array.from(nav.querySelectorAll('button')).find(x=>x.textContent?.trim().startsWith('Analytics'));
-  analytics?.addEventListener('click',()=>openTraffic());
-}
-
-function card(label:string,value:string,sub:string,cls=''){return `<div class="ltMetric ${cls}"><span>${label}</span><strong>${value}</strong><small>${sub}</small></div>`}
-function list(title:string,rows:TrafficRow[],label:(r:TrafficRow)=>string,value:(r:TrafficRow)=>number){return `<section class="ltCard"><div class="ltCardHead"><div><h3>${title}</h3><p>Realtime breakdown</p></div></div><div class="ltList">${rows.slice(0,8).map(r=>{const v=value(r);return `<div class="ltRow"><span>${label(r)}</span><div><i style="width:${Math.max(5,Math.min(100,v/(Math.max(1,...rows.map(value)))*100))}%"></i></div><b>${v}</b></div>`}).join('')}</div></section>`}
-
-function render(p:TrafficPayload){
-  const overlay=qs<HTMLElement>('#liveTrafficOverlay');if(!overlay)return;
-  const max=Math.max(1,...p.minutes.map(x=>x.value));
-  overlay.innerHTML=`<div class="ltShell"><header class="ltHeader"><div><div class="ltEyebrow">CRAZY SEO TEAM • REALTIME ANALYTICS</div><h2>Live Traffic Command Center</h2><p>Monitor active visitors, pages, devices, countries and events.</p></div><div class="ltHeaderActions"><span class="ltStatus"><i></i>${p.source==='ga4'?'GA4 REALTIME CONNECTED':'CRM DEMO DATA'}</span><button id="ltRefresh">↻ Refresh</button><button id="ltClose">×</button></div></header><div class="ltBody">
-    <div class="ltMetrics">${card('Active users',String(p.activeUsers),'last 30 minutes','hot')}${card('Page views',String(p.pageViews),'realtime')}${card('Events',String(p.events),'realtime')}${card('Key events',String(p.keyEvents),'conversions')}</div>
-    <section class="ltCard ltChartCard"><div class="ltCardHead"><div><h3>Active users — 30 minute pulse</h3><p>Updates automatically every 15 seconds when GA4 is connected.</p></div><strong>${p.activeUsers} online</strong></div><div class="ltChart">${p.minutes.map(x=>`<div class="ltBar" title="${x.label}: ${x.value}" style="height:${Math.max(7,x.value/max*100)}%"></div>`).join('')}</div><div class="ltAxis"><span>-30m</span><span>-20m</span><span>-10m</span><span>Now</span></div></section>
-    <div class="ltGrid2">${list('Top countries',p.countries,r=>r.country||'Unknown',r=>r.activeUsers||0)}${list('Devices',p.devices,r=>r.deviceCategory||'Unknown',r=>r.activeUsers||0)}</div>
-    <div class="ltGrid2">${list('Top pages',p.pages,r=>r.unifiedScreenName||'Unknown',r=>r.screenPageViews||0)}${list('Event activity',p.eventsStream,r=>r.eventName||'Unknown',r=>r.eventCount||0)}</div>
-    <section class="ltCard"><div class="ltCardHead"><div><h3>Traffic health</h3><p>Operational checks for the analytics connection.</p></div></div><div class="ltHealth"><div><i class="ok"></i><span>Realtime collector</span><b>${p.source==='ga4'?'Connected':'Ready for GA4 credentials'}</b></div><div><i class="ok"></i><span>Refresh cycle</span><b>15 seconds</b></div><div><i class="ok"></i><span>Realtime window</span><b>30 minutes</b></div><div><i class="warn"></i><span>Data provider</span><b>${p.source==='ga4'?'Google Analytics 4':'Demo fallback'}</b></div></div></section>
-  </div></div>`;
-  qs('#ltClose')?.addEventListener('click',closeTraffic);qs('#ltRefresh')?.addEventListener('click',()=>refresh(true));
-}
-
 let timer:number|undefined;
-async function refresh(force=false){
-  const overlay=qs<HTMLElement>('#liveTrafficOverlay');if(!overlay)return;
-  const button=qs<HTMLButtonElement>('#ltRefresh');if(button)button.disabled=true;
-  const p=await getPayload();render(p);
-  const note=qs<HTMLElement>('#ltLastUpdate');if(note)note.textContent=`Updated ${new Date().toLocaleTimeString('en-IN')}`;
-  if(button)button.disabled=false;
-  if(force)document.body.dispatchEvent(new CustomEvent('cst-traffic-refresh'));
-}
-function openTraffic(){
-  let overlay=qs<HTMLElement>('#liveTrafficOverlay');
-  if(!overlay){overlay=document.createElement('div');overlay.id='liveTrafficOverlay';document.body.appendChild(overlay)}
-  overlay.classList.add('open');render(demoPayload());refresh();
-  window.clearInterval(timer);timer=window.setInterval(()=>refresh(),15000);
-}
-function closeTraffic(){qs('#liveTrafficOverlay')?.classList.remove('open');window.clearInterval(timer)}
-
-function boot(){injectNav();const observer=new MutationObserver(()=>injectNav());observer.observe(document.body,{childList:true,subtree:true});}
+async function openTraffic(view='overview'){let root=qs<HTMLElement>('#liveTrafficOverlay');if(!root){root=document.createElement('div');root.id='liveTrafficOverlay';document.body.appendChild(root)}root.classList.add('open');render(demo(),view);const p=await load();render(p,view);window.clearInterval(timer);timer=window.setInterval(async()=>{if(root?.classList.contains('open'))render(await load(),view)},30000)}
+function injectNav(){const nav=qs('aside nav');if(!nav||nav.querySelector('[data-live-traffic]'))return;const b=document.createElement('button');b.className='nav liveTrafficNav';b.setAttribute('data-live-traffic','1');b.innerHTML='<span class="ltIcon">◉</span><span>Live Traffic</span><em>LIVE</em>';b.onclick=()=>openTraffic('realtime');nav.appendChild(b);const analytics=Array.from(nav.querySelectorAll('button')).find(x=>x.textContent?.trim().startsWith('Analytics'));analytics?.addEventListener('click',()=>openTraffic('overview'));}
+function boot(){injectNav();new MutationObserver(injectNav).observe(document.body,{childList:true,subtree:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
