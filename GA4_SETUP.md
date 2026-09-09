@@ -1,40 +1,47 @@
-# GA4 Realtime setup for Crazy SEO Team CRM
+# Crazy SEO Team — Unified Analytics Setup
 
-The CRM now includes an upgraded Live Traffic / Realtime Analytics monitor. It uses the Google Analytics Data API Realtime method when the server environment variables are configured; otherwise the UI safely falls back to clearly labelled CRM demo data.
+The admin analytics dashboard now combines **GA4 + Google Search Console + CRM revenue/leads** in one interface.
 
 ## Vercel environment variables
 
-Add these variables to the Vercel project for the CRM:
+Add these server-side variables to the Vercel project:
 
-- `GA_PROPERTY_ID` — numeric GA4 property ID, for example `123456789`.
-- `GA_CLIENT_EMAIL` — service-account client email.
-- `GA_PRIVATE_KEY` — service-account private key. Keep the value server-side only; include the newline characters as `\\n` if Vercel stores the key on one line.
+- `GA_PROPERTY_ID` — numeric GA4 property ID.
+- `GA_CLIENT_EMAIL` — Google service-account email.
+- `GA_PRIVATE_KEY` — service-account private key. Keep it server-side only; if stored on one line, preserve newlines as `\\n`.
+- `GSC_SITE_URL` — the exact Search Console property URL, normally `https://www.crazyseoteam.in/` for a URL-prefix property or `sc-domain:crazyseoteam.in` for a Domain property.
 
-Do not put the private key in frontend files or `VITE_` variables.
+Never expose `GA_PRIVATE_KEY` in frontend code or any `VITE_` variable.
 
-## Google Cloud / GA4 permissions
+## Google Cloud / GA4
 
-1. Create or use a Google Cloud project.
-2. Enable the Google Analytics Data API.
-3. Create a service account.
-4. In Google Analytics Admin, add the service-account email to the GA4 property with Viewer access.
-5. Copy the service-account email and private key into the Vercel environment variables above.
-6. Redeploy the CRM.
+1. Enable Google Analytics Data API.
+2. Create a Google service account.
+3. In GA4 Admin, add the service-account email to the GA4 property with Viewer access.
+4. Add the three GA4 environment variables in Vercel.
 
-The endpoint is `/api/analytics-realtime`.
+## Google Search Console
 
-## What the upgraded monitor shows
+1. Verify the site/property in Search Console.
+2. Give the same service-account email access to the Search Console property with read permission.
+3. Add `GSC_SITE_URL` using the exact property identifier.
+4. Redeploy.
 
-- Active users in the last 30 minutes
-- Realtime page views
-- Realtime events
-- Key events / conversions
-- 30-minute active-user pulse chart
-- Countries
-- Device categories
-- Top pages
-- Event activity
-- Connection and refresh health
-- Automatic 15-second refresh
+The dashboard calls `/api/analytics-dashboard` server-side. Search Console data is queried with the Search Analytics API and can be grouped by query, page, country and device.
 
-Google's Realtime Data API supports active users, event count, key events and page views, and realtime events can appear within seconds after collection. The API has a limited realtime dimension/metric set, so the CRM only requests supported realtime dimensions and metrics.
+## Dashboard sections
+
+- **Overview:** visitors, sessions, Google clicks, impressions, SEO CTR, CRM pipeline, won revenue and lead conversion.
+- **Live Traffic:** current active visitors with country, city and device.
+- **SEO Traffic:** clicks, impressions, CTR, average position, queries, SEO pages, countries and devices.
+- **Sources:** GA4 channel/source/medium performance.
+- **Country / City:** geographic traffic performance.
+- **Revenue & Leads:** CRM pipeline, won revenue, average deal, conversion and lead sources.
+
+## CRM revenue / conversion
+
+The current CRM stores leads in browser storage (`cst-final-leads`). The dashboard reads that data on the admin browser to calculate pipeline, won revenue, average deal and lead conversion. For multi-user permanent reporting, move the lead store to Supabase/PostgreSQL and expose authenticated server-side CRM metrics.
+
+## Important
+
+If credentials are missing, the dashboard shows **DEMO DATA** clearly instead of pretending demo numbers are real analytics. Google Analytics realtime reports cover the current realtime window, while Search Console provides search-performance reporting over a date range.
